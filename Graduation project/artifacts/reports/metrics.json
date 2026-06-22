@@ -1,0 +1,19 @@
+{
+  "main_model": {
+    "accuracy": 0.9059340074507717,
+    "precision": 0.8949337938975245,
+    "recall": 0.900898290350623,
+    "f1": 0.8979061371841155,
+    "roc_auc": 0.948888230696274
+  },
+  "baselines": {
+    "logistic_regression": {
+      "accuracy": 0.9453166577967004,
+      "precision": 0.936280137772675,
+      "recall": 0.9452332657200812,
+      "f1": 0.9407354001441961,
+      "roc_auc": 0.9868922960455336
+    }
+  },
+  "classification_report": "              precision    recall  f1-score   support\n\n           0     0.9154    0.9102    0.9128      4065\n           1     0.8949    0.9009    0.8979      3451\n\n    accuracy                         0.9059      7516\n   macro avg     0.9052    0.9056    0.9053      7516\nweighted avg     0.9060    0.9059    0.9060      7516\n"
+}

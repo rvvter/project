@@ -1,0 +1,157 @@
+/* 页面整体风格 */
+body {
+  margin: 0;
+  font-family: "Microsoft YaHei", Arial, sans-serif;
+  background: #f5f7fb;
+  color: #222;
+}
+
+/* 主内容容器 */
+.container {
+  max-width: 900px;
+  margin: 24px auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.07);
+}
+
+/* 标题间距重置 */
+h1, h2, h3 {
+  margin-top: 0;
+}
+
+/* 辅助说明文本 */
+.hint {
+  color: #666;
+}
+
+/* 模型未就绪提示 */
+.warn {
+  background: #fff6df;
+  border-left: 4px solid #f4be4f;
+  padding: 10px;
+  margin-bottom: 14px;
+}
+
+/* 表单标签 */
+.field-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* 文本输入框 */
+textarea {
+  width: 100%;
+  min-height: 180px;
+  border: 1px solid #d7dbe7;
+  border-radius: 8px;
+  padding: 12px;
+  resize: vertical;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+textarea[aria-invalid="true"] {
+  border-color: #e04b4b;
+  outline: 1px solid rgba(224, 75, 75, 0.25);
+}
+
+/* 字段辅助信息 */
+.field-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.field-hint {
+  margin: 0;
+  flex: 1;
+}
+
+.char-count {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.char-count.over-limit {
+  color: #e04b4b;
+  font-weight: 600;
+}
+
+.field-error {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff0f0;
+  border-left: 4px solid #e04b4b;
+  color: #a12626;
+  font-size: 14px;
+}
+
+/* 按钮区域 */
+.action-row {
+  margin-top: 12px;
+}
+
+/* 主操作按钮 */
+button {
+  border: none;
+  background: #2055ee;
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* 禁用态按钮 */
+button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* 结果卡片 */
+.result {
+  margin-top: 20px;
+  border-top: 1px solid #eceff5;
+  padding-top: 16px;
+}
+
+/* 隐藏元素 */
+.hidden {
+  display: none;
+}
+
+/* 特征条形图行 */
+.bar-row {
+  margin: 8px 0;
+}
+
+/* 特征名称文本 */
+.bar-label {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+/* 进度条容器 */
+.bar-wrap {
+  width: 100%;
+  height: 12px;
+  background: #edf1fd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* 进度条本体 */
+.bar {
+  height: 12px;
+  background: linear-gradient(90deg, #3d7bff, #6b4bff);
+}

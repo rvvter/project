@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+
+  <!-- 移动端适配 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- 页面标题 -->
+  <title>机器生成文本检测系统</title>
+
+  <!-- 引入外部 CSS 样式 -->
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+  <div class="container">
+
+    <!-- 页面主标题 -->
+    <h1>机器生成文本检测系统</h1>
+
+    <!-- 页面说明 -->
+    <p class="hint">
+      基于特征工程 + 决策树，可解释输出。
+    </p>
+
+    <!--
+      Jinja2 模板语法：
+      如果模型尚未训练，则显示警告信息
+    -->
+    {% if not model_ready %}
+      <div class="warn">
+        模型尚未训练。请先运行
+        <code>python scripts/run_pipeline.py</code>
+      </div>
+    {% endif %}
+
+    <!-- 输入框标签 -->
+    <label class="field-label" for="textInput">
+      待检测文本
+    </label>
+
+    <!--
+      文本输入区域
+      maxlength：最大输入长度
+      aria-*：无障碍辅助属性
+    -->
+    <textarea
+      id="textInput"
+      placeholder="请输入待检测文本..."
+      maxlength="{{ max_text_len }}"
+      aria-describedby="textHint charCount fieldError"
+    ></textarea>
+
+    <!-- 输入框下方的提示信息 -->
+    <div class="field-meta">
+
+      <!-- 长度提示 -->
+      <p id="textHint" class="hint field-hint">
+        长度 {{ min_text_len }}–{{ max_text_len }} 字符，
+        须包含中文、英文或数字。
+      </p>
+
+      <!-- 字数统计 -->
+      <p id="charCount"
+         class="char-count"
+         aria-live="polite">
+        0 / {{ max_text_len }}
+      </p>
+    </div>
+
+    <!-- 错误提示区域 -->
+    <p id="fieldError"
+       class="field-error hidden"
+       role="alert">
+    </p>
+
+    <!-- 按钮区域 -->
+    <div class="action-row">
+      <button id="detectBtn" type="button">
+        开始检测
+      </button>
+    </div>
+
+    <!-- 检测结果区域 -->
+    <div id="resultBox" class="result hidden">
+
+      <h2>检测结果</h2>
+
+      <!-- 标签 -->
+      <p>
+        <strong>标签：</strong>
+        <span id="labelName">-</span>
+      </p>
+
+      <!-- 机器文本概率 -->
+      <p>
+        <strong>机器文本概率：</strong>
+        <span id="machineProb">-</span>
+      </p>
+
+      <!-- 置信度 -->
+      <p>
+        <strong>置信度：</strong>
+        <span id="confidence">-</span>
+      </p>
+
+      <!-- 特征解释 -->
+      <h3>贡献最大的特征</h3>
+
+      <!-- 特征列表 -->
+      <div id="featureList"></div>
+    </div>
+  </div>
+
+  <!--
+    将 Flask 后端参数注入到前端 JS
+    window.DETECT_VALIDATION 是全局对象
+  -->
+  <script>
+    window.DETECT_VALIDATION = {
+
+      // 最小文本长度
+      minTextLen: {{ min_text_len }},
+
+      // 最大文本长度
+      maxTextLen: {{ max_text_len }},
+
+      // 最小 token 数量
+      minTokenCount: {{ min_token_count }},
+    };
+  </script>
+
+  <!-- 引入单独的输入校验 JS -->
+  <script src="/static/validation.js"></script>
+
+  <script>
+    /*****************************************************************
+     * 获取页面元素
+     *****************************************************************/
+
+    // 检测按钮
+    const btn = document.getElementById('detectBtn');
+
+    // 文本输入框
+    const textInput = document.getElementById('textInput');
+
+    // 结果区域
+    const resultBox = document.getElementById('resultBox');
+
+    // 标签显示
+    const labelName = document.getElementById('labelName');
+
+    // 机器文本概率显示
+    const machineProb = document.getElementById('machineProb');
+
+    // 置信度显示
+    const confidence = document.getElementById('confidence');
+
+    // 特征列表区域
+    const featureList = document.getElementById('featureList');
+
+    // 错误提示区域
+    const fieldError = document.getElementById('fieldError');
+
+    // 字数统计区域
+    const charCount = document.getElementById('charCount');
+
+    // 最大长度
+    const maxTextLen = window.DETECT_VALIDATION.maxTextLen;
+
+    /*****************************************************************
+     * 显示错误信息
+     *****************************************************************/
+    function showError(message) {
+
+      // 设置错误文本
+      fieldError.textContent = message;
+
+      // 显示错误区域
+      fieldError.classList.remove('hidden');
+
+      // 添加 aria-invalid 属性（无障碍）
+      textInput.setAttribute('aria-invalid', 'true');
+    }
+
+    /*****************************************************************
+     * 清除错误信息
+     *****************************************************************/
+    function clearError() {
+
+      // 清空错误文本
+      fieldError.textContent = '';
+
+      // 隐藏错误区域
+      fieldError.classList.add('hidden');
+
+      // 移除 aria-invalid 属性
+      textInput.removeAttribute('aria-invalid');
+    }
+
+    /*****************************************************************
+     * 更新字符统计
+     *****************************************************************/
+    function updateCharCount() {
+
+      // 当前输入长度
+      const len = textInput.value.length;
+
+      // 更新显示文本
+      charCount.textContent = `${len} / ${maxTextLen}`;
+
+      /*
+        如果超出长度限制，
+        则添加 over-limit 样式
+      */
+      charCount.classList.toggle(
+        'over-limit',
+        len > maxTextLen
+      );
+    }
+
+    /*****************************************************************
+     * 输入事件监听
+     * 用户每次输入时：
+     * 1. 清除错误
+     * 2. 更新字数
+     *****************************************************************/
+    textInput.addEventListener('input', () => {
+
+      // 清除错误
+      clearError();
+
+      // 更新字数
+      updateCharCount();
+    });
+
+    // 页面初始化时执行一次
+    updateCharCount();
+
+    /*****************************************************************
+     * 渲染特征贡献列表
+     *****************************************************************/
+    function renderFeatures(features) {
+
+      // 清空旧内容
+      featureList.innerHTML = '';
+
+      /*
+        遍历所有特征
+        每个特征结构：
+        {
+          feature: 特征名,
+          value: 特征值,
+          contribution: 特征贡献度
+        }
+      */
+      features.forEach((item) => {
+
+        /*******************************
+         * 创建一行
+         *******************************/
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+
+        /*******************************
+         * 创建特征标签
+         *******************************/
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+
+        /*
+          toFixed(4)
+          保留 4 位小数
+        */
+        label.textContent =
+          `${item.feature} (值: ${item.value.toFixed(4)})`;
+
+        /*******************************
+         * 创建进度条容器
+         *******************************/
+        const barWrap = document.createElement('div');
+        barWrap.className = 'bar-wrap';
+
+        /*******************************
+         * 创建进度条
+         *******************************/
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+
+        /*
+          contribution 可能很小，
+          所以放大 800 倍方便显示
+        */
+        const width =
+          Math.min(
+            100,
+            Math.abs(item.contribution) * 800
+          );
+
+        /*
+          最小宽度设为 4px，
+          避免太小看不见
+        */
+        bar.style.width =
+          `${Math.max(width, 4)}px`;
+
+        // 将 bar 放入容器
+        barWrap.appendChild(bar);
+
+        // 将 label 和 barWrap 放入 row
+        row.appendChild(label);
+        row.appendChild(barWrap);
+
+        // 将整行加入页面
+        featureList.appendChild(row);
+      });
+    }
+
+    /*****************************************************************
+     * 点击“开始检测”按钮
+     *****************************************************************/
+    btn.addEventListener('click', async () => {
+
+      // 清除旧错误
+      clearError();
+
+      /*******************************
+       * 前端输入校验
+       *******************************/
+      const checked =
+        validateDetectText(textInput.value);
+
+      // 校验失败
+      if (!checked.ok) {
+
+        // 显示错误
+        showError(checked.error);
+
+        return;
+      }
+
+      /*******************************
+       * 按钮进入加载状态
+       *******************************/
+      btn.disabled = true;
+      btn.textContent = '检测中...';
+
+      try {
+
+        /*******************************
+         * 向后端发送 POST 请求
+         *******************************/
+        const resp = await fetch('/api/detect', {
+
+          // 请求方法
+          method: 'POST',
+
+          // 请求头
+          headers: {
+            'Content-Type': 'application/json'
+          },
+
+          // 请求体
+          body: JSON.stringify({
+
+            // 提交清洗后的文本
+            text: checked.text
+          }),
+        });
+
+        /*******************************
+         * 解析 JSON 数据
+         *******************************/
+        const data = await resp.json();
+
+        /*******************************
+         * 检测 HTTP 是否成功
+         *******************************/
+        if (!resp.ok || !data.ok) {
+
+          throw new Error(
+            data.error ||
+            `检测失败（HTTP ${resp.status}）`
+          );
+        }
+
+        /*******************************
+         * 获取结果
+         *******************************/
+        const r = data.result;
+
+        /*******************************
+         * 更新页面数据
+         *******************************/
+
+        // 标签
+        labelName.textContent = r.label_name;
+
+        // 机器文本概率
+        machineProb.textContent =
+          `${(r.probability_machine * 100).toFixed(2)}%`;
+
+        // 置信度
+        confidence.textContent =
+          `${(r.confidence * 100).toFixed(2)}%`;
+
+        // 渲染特征解释
+        renderFeatures(r.top_features || []);
+
+        // 显示结果区域
+        resultBox.classList.remove('hidden');
+
+      } catch (e) {
+
+        /*******************************
+         * 异常处理
+         *******************************/
+        showError(e.message);
+
+      } finally {
+
+        /*******************************
+         * 恢复按钮状态
+         *******************************/
+        btn.disabled = false;
+
+        btn.textContent = '开始检测';
+      }
+    });
+  </script>
+</body>
+</html>
