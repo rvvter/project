@@ -1,0 +1,17 @@
+[client]
+# 隐藏右上角工具栏（⋮菜单 + Deploy按钮）
+toolbarMode = "minimal"
+
+[theme]
+primaryColor = "#6366f1"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f8fafc"
+textColor = "#1e293b"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = true
+# 禁用文件监控以避免报错
+fileWatcherType = "none"
