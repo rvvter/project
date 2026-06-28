@@ -27,6 +27,10 @@ Flask 接收请求
 返回 JSON 检测结果
 """
 
+# os
+# 用于读取环境变量（如 Render 的 $PORT）
+import os
+
 # pathlib.Path
 # 用于跨平台文件路径处理
 from pathlib import Path
@@ -368,22 +372,17 @@ def request_too_large(_):
 
 if __name__ == "__main__":
 
-    # host="127.0.0.1"
-    # 仅本机访问
+    # 生产环境配置（Render / Docker 等）
+    # $PORT 由 Render 自动注入，本地开发默认 5000
     #
-    # port=5000
-    # Flask 默认端口
-    #
-    # debug=True
-    # 开启调试模式
-    #
-    # 功能：
-    # 1. 自动热更新
-    # 2. 显示详细错误信息
+    # host="0.0.0.0" → 允许外部访问（Render 要求）
+    # debug=False  → 生产环境关闭调试模式
+    is_production = os.environ.get("RENDER") == "1"
+
     app.run(
-        host="127.0.0.1",
+        host="0.0.0.0",
 
-        port=5000,
+        port=int(os.environ.get("PORT", 5000)),
 
-        debug=True
+        debug=not is_production,
     )
