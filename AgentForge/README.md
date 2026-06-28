@@ -2,7 +2,7 @@
 
 一个基于多智能体协作的 AI 技术面试备考平台。输入求职目标，系统自动规划复习路线、讲解考点、模拟面试并评分、定位薄弱环节。
 
-**🔗 在线体验：[点击这里](https://agentforge.streamlit.app)**（部署后替换此链接）
+**🔗 在线体验：[点击这里]([AI 技术面试备考系统 · Streamlit (appapppy-5n9jcpkij3bjbjynmejwae.streamlit.app)](https://appapppy-5n9jcpkij3bjbjynmejwae.streamlit.app/))**（部署后替换此链接）
 
 ---
 
