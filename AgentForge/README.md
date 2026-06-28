@@ -1,258 +1,151 @@
-# Production-Grade Multi-Agent AI System
+# 🤖 AI 技术面试备考系统
 
-Build a complete multi-agent AI system that runs entirely on your machine.
-No API keys, no cloud dependencies, no ongoing cost.
+一个基于多智能体协作的 AI 技术面试备考平台。输入求职目标，系统自动规划复习路线、讲解考点、模拟面试并评分、定位薄弱环节。
 
-This project is the companion code for the freeCodeCamp handbook:
-**How to Build a Local Multi-Agent AI System with LangGraph, MCP, and A2A**
-(link to be added once published)
+**🔗 在线体验：[点击这里](https://agentforge.streamlit.app)**（部署后替换此链接）
 
 ---
 
-## What this builds
-
-A **Learning Accelerator**: a four-agent system that plans a study curriculum,
-explains topics from your own notes, quizzes you, and adapts based on results.
-The use case is the teaching vehicle. The architecture is the real subject.
+## ✨ 功能演示
 
 ```
-Goal: "Learn Python closures and decorators"
-  │
-  ▼
-Curriculum Planner  →  structured study roadmap
-  │
-  ▼ (you approve the plan)
-Explainer           →  reads your notes via MCP, explains each topic
-  │
-  ▼
-Quiz Generator      →  tests understanding, grades answers with LLM-as-judge
-  │
-  ▼
-Progress Coach      →  adapts roadmap, calls CrewAI Study Buddy via A2A
-  │
-  └── loops back to Explainer for next topic
+求职目标：「准备腾讯后台开发暑期实习面试」
+
+┌─────────┐    ┌─────────┐    ┌──────────┐    ┌──────────┐
+│考点规划师│ →  │知识讲解师│ →  │模拟面试官 │ →  │弱项分析师│
+│生成6个考点│    │结合笔记讲解│   │出题+评分  │    │定位薄弱环节│
+└─────────┘    └─────────┘    └──────────┘    └──────────┘
+                                                     │
+                                              有考点 → 循环
+                                              全完成 → 总结报告
 ```
 
-The same architecture pattern runs in production for sales enablement,
-compliance training, customer support onboarding, and engineering ramp-up.
+- 📋 **智能规划**：根据求职目标自动生成复习路线图（考点排序、时长估计、面试加分建议）
+- 📖 **深度讲解**：每个考点四板块讲解（核心概念→面试话术→加分亮点→常见误区）
+- 💬 **模拟面试**：LLM 出题 + 实时评分 + 逐题反馈
+- 📊 **弱项分析**：定位知识薄弱点，生成针对性补强建议
+- 💾 **进度保存**：每个考点自动保存，支持断点续学
 
 ---
 
-## Architecture
+## 🚀 快速开始
 
-| Layer | Technology | What it does |
-|---|---|---|
-| Orchestration | LangGraph 1.1.0 | Stateful agent graph with checkpointing |
-| Tool integration | MCP (mcp 1.26.0) | Standardised agent-to-tool protocol |
-| Agent coordination | A2A (a2a-sdk 0.3.25) | Cross-framework agent-to-agent protocol |
-| Local inference | Ollama | LLM serving at localhost:11434 |
-| Cross-framework | CrewAI 1.13.0 | Study Buddy agent (called via A2A) |
-| Observability | Langfuse 4.0.1 | Full trace of every agent and LLM call |
-| Evaluation | DeepEval 3.9.1 | LLM-as-judge quality metrics |
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a full deep-dive.
-
----
-
-## Requirements
-
-- Python 3.11+
-- [Ollama](https://ollama.com) installed and running
-- Docker Desktop (for Langfuse observability, optional)
-- 16 GB RAM minimum, 32 GB recommended
-- 8 GB VRAM for `qwen2.5:7b` | 24 GB VRAM for `qwen2.5-coder:32b`
-
----
-
-## Quick start
+### 本地运行
 
 ```bash
-# 1. Clone and set up
-git clone https://github.com/sandeepmb/freecodecamp-multi-agent-ai-system
-cd freecodecamp-multi-agent-ai-system
-python -m venv .venv && source .venv/bin/activate
+# 1. 安装依赖
 pip install -r requirements.txt
 
-# 2. Pull your model (choose based on VRAM)
-ollama pull qwen2.5:7b          # 8 GB VRAM
-ollama pull qwen2.5-coder:32b   # 24 GB VRAM
-
-# 3. Ensure Ollama is running
-ollama serve                  # in a separate terminal
-# Or on macOS: start the Ollama app from your Applications folder
-
-# 4. Configure
+# 2. 配置 API Key
 cp .env.example .env
-# Edit .env: set OLLAMA_MODEL to match what you pulled
+# 编辑 .env，填入 DEEPSEEK_API_KEY（从 https://platform.deepseek.com 获取）
 
-# 5. Run
-python main.py
+# 3. 终端版
+python main.py "准备腾讯后台开发暑期实习面试"
+
+# 4. Web 版（推荐）
+streamlit run streamlit_app.py
+# 浏览器打开 http://localhost:8501
 ```
 
-For the full system with A2A services and observability, see [Running all services](#running-all-services).
+### 在线部署
+
+1. Fork 本仓库到你的 GitHub
+2. 在 [share.streamlit.io](https://share.streamlit.io) 用 GitHub 登录
+3. 新建 App，选择本仓库，Main file path: `streamlit_app.py`
+4. 在 Secrets 中配置 `DEEPSEEK_API_KEY`
+5. 获得公开链接
 
 ---
 
-## Project structure
+## 🏗️ 技术架构
 
-```
-freecodecamp-multi-agent-ai-system/
-├── src/
-│   ├── agents/                 # LangGraph agent nodes
-│   │   ├── curriculum_planner.py
-│   │   ├── explainer.py
-│   │   ├── quiz_generator.py
-│   │   ├── progress_coach.py
-│   │   └── human_approval.py
-│   ├── graph/
-│   │   ├── state.py            # Shared AgentState TypedDict
-│   │   └── workflow.py         # LangGraph graph definition
-│   ├── mcp_servers/            # MCP tool servers
-│   │   ├── filesystem_server.py
-│   │   └── memory_server.py
-│   ├── a2a_services/           # A2A protocol services and client
-│   │   ├── quiz_service.py     # Quiz Generator as A2A service
-│   │   └── a2a_client.py       # Client for calling A2A services
-│   ├── crewai_agent/
-│   │   └── study_buddy.py      # CrewAI agent served via A2A
-│   └── observability/
-│       └── langfuse_setup.py   # Langfuse callback handler
-├── tests/
-│   ├── conftest.py             # Shared fixtures and markers
-│   ├── test_state.py           # 24 tests
-│   ├── test_curriculum_planner.py  # 11 tests
-│   ├── test_mcp_servers.py     # 36 tests
-│   ├── test_explainer.py       # 14 tests
-│   ├── test_quiz_and_coach.py  # 17 tests
-│   ├── test_checkpointing.py   # 20 tests
-│   ├── test_observability.py   # 16 tests
-│   ├── test_a2a.py             # 19 tests
-│   ├── test_crewai_interop.py  # 25 tests
-│   └── test_eval.py            # 12 eval tests (requires Ollama)
-├── study_materials/
-│   └── sample_notes/           # Markdown files the agents read
-├── docs/
-│   ├── ARCHITECTURE.md
-│   └── MODEL_SELECTION.md
-├── data/                       # SQLite checkpoint DB (created at runtime)
-├── main.py                     # Entry point
-├── docker-compose.yml          # Langfuse self-hosted stack
-├── Makefile                    # One-command startup
-├── requirements.txt
-└── .env.example
-```
-
----
-
-## Running all services
-
-The full system has three processes. Open three terminal tabs.
-
-**Tab 1: Quiz Generator A2A service:**
-```bash
-source .venv/bin/activate
-python src/a2a_services/quiz_service.py
-# Serves at http://localhost:9001
-```
-
-**Tab 2: CrewAI Study Buddy A2A service:**
-```bash
-source .venv/bin/activate
-python src/crewai_agent/study_buddy.py
-# Serves at http://localhost:9002
-```
-
-**Tab 3: Main LangGraph application:**
-```bash
-source .venv/bin/activate
-python main.py
-```
-
-Or use the Makefile:
-```bash
-make services   # starts both A2A services in background
-make run        # runs the main application
-```
-
----
-
-## Session resume
-
-Every session is checkpointed to `data/checkpoints.db` after each agent node.
-To resume a stopped session:
-
-```bash
-python main.py --resume <session-id>
-```
-
-The session ID is printed at the start of every run.
-
----
-
-## Observability
-
-Start Langfuse locally:
-```bash
-docker compose up -d
-# Open http://localhost:3000
-```
-
-Add your API keys to `.env` (from the Langfuse project settings), then run
-as normal. Every agent call, LLM completion, and tool call appears in the
-trace UI automatically.
-
----
-
-## Testing
-
-```bash
-# Fast unit tests, run during development (~3 seconds)
-# 182 tests across 9 test files
-pytest tests/ -m "not eval" -v
-
-# Quality evaluation tests, run before releases (~90 seconds, requires Ollama)
-# 12 LLM-as-judge tests
-pytest tests/test_eval.py -v -s -m eval
-```
-
----
-
-## Adding your own study materials
-
-Replace or add Markdown files in `study_materials/sample_notes/`.
-The Explainer agent reads every `.md` file in that directory automatically
-via the MCP filesystem server. No configuration changes needed.
-
----
-
-## Configuration reference
-
-See `.env.example` for all available settings.
-
-Key toggles:
-| Variable | Default | Effect |
+| 层级 | 技术 | 说明 |
 |---|---|---|
-| `OLLAMA_MODEL` | `qwen2.5:7b` | Model for all agents |
-| `USE_A2A_QUIZ` | `true` | Route quiz tasks to A2A service |
-| `USE_STUDY_BUDDY` | `true` | Call CrewAI Study Buddy for low scores |
-| `CHECKPOINT_DB` | `data/checkpoints.db` | SQLite path for checkpoints |
+| 编排框架 | LangGraph 1.1.0 | 状态图编排 + SQLite 检查点持久化 |
+| LLM 后端 | DeepSeek API | 默认后端，支持一键切换 OpenAI/Ollama |
+| 工具协议 | MCP 1.26.0 | 文件系统工具、会话记忆 |
+| 前端 | Streamlit 1.43.2 | 响应式 Web 界面 |
+| 可观测性 | Langfuse 4.0.1 | 可选，完整 LLM 调用链追踪 |
+
+```
+┌─────────────────────────────────────────────┐
+│              Streamlit Web UI                │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│              LangGraph 状态图                 │
+│                                              │
+│  curriculum_planner → human_approval         │
+│         ↓ 确认           ↓ 拒绝（重生成）     │
+│  explainer → quiz_generator → progress_coach │
+│         ↑                        ↓           │
+│         └──── 循环（下一考点）────┘           │
+│                                              │
+│  SqliteSaver: 每步自动写入 SQLite             │
+│  interrupt(): 人在回路中审批                   │
+└──────────────────┬──────────────────────────┘
+                   │
+        ┌──────────┴──────────┐
+        ▼                     ▼
+┌──────────────┐    ┌──────────────────┐
+│  MCP Tools   │    │  DeepSeek API     │
+│  文件系统工具  │    │  (兼容 OpenAI/Ollama)│
+│  会话记忆     │    └──────────────────┘
+└──────────────┘
+```
 
 ---
 
-## Article
+## 📂 项目结构
 
-This code is the companion to the freeCodeCamp handbook:
-**How to Build Production-Grade Multi-Agent AI Systems with LangGraph, MCP, A2A, and Ollama**
-
-The handbook explains every architectural decision, walks through each
-agent step by step, and covers the production patterns that make this
-system different from a basic tutorial.
+```
+AgentForge/
+├── main.py                  # 终端入口
+├── streamlit_app.py         # Web 界面入口
+├── .env.example             # 环境变量模板
+├── requirements.txt         # 依赖列表
+├── src/
+│   ├── llm_factory.py       # 统一 LLM 工厂（DeepSeek/OpenAI/Ollama）
+│   ├── agents/
+│   │   ├── curriculum_planner.py  # 考点规划师
+│   │   ├── explainer.py           # 知识讲解师（工具调用循环）
+│   │   ├── quiz_generator.py      # 模拟面试官（出题+评分）
+│   │   ├── progress_coach.py      # 弱项分析师
+│   │   └── human_approval.py      # 人工审批（人在回路中）
+│   ├── graph/
+│   │   ├── state.py               # 共享状态定义
+│   │   └── workflow.py            # LangGraph 图构建
+│   ├── mcp_servers/
+│   │   ├── filesystem_server.py   # 笔记文件系统 MCP
+│   │   └── memory_server.py       # 会话记忆 MCP
+│   └── observability/
+│       └── langfuse_setup.py      # Langfuse 可观测性
+├── docs/
+│   ├── ARCHITECTURE.md      # 架构详解
+│   └── MODEL_SELECTION.md   # 模型选择指南
+├── study_materials/         # 复习笔记（Markdown）
+└── data/                    # SQLite 检查点（自动生成，不提交）
+```
 
 ---
 
-## Author
+## ⚙️ 配置说明
 
-**Sandeep Bharadwaj Mannapur**
-Lead Data and AI/ML Engineer with 15+ years in financial services and enterprise SaaS.
+编辑 `.env` 文件：
 
-[GitHub](https://github.com/sandeepmb) · [freeCodeCamp](https://www.freecodecamp.org/news/author/sandeep-mannapur/)
+```bash
+# LLM 后端（三选一）
+LLM_PROVIDER=deepseek        # deepseek / openai / ollama
+DEEPSEEK_API_KEY=sk-xxx      # DeepSeek API Key
+
+# 可选：Langfuse 可观测性
+LANGFUSE_PUBLIC_KEY=         # 留空则不启用
+LANGFUSE_SECRET_KEY=
+```
+
+---
+
+## 📄 许可证
+
+MIT License
